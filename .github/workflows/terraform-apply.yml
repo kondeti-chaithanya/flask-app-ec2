@@ -2,14 +2,9 @@ name: Terraform CI/CD
 
 on:
   pull_request:
-    paths:
-      - 'infra/terraform/**'
-
   push:
     branches:
       - main
-    paths:
-      - 'infra/terraform/**'
 
 permissions:
   id-token: write
@@ -24,38 +19,27 @@ jobs:
         working-directory: infra/terraform
 
     steps:
-      # ✅ Checkout
       - name: Checkout
         uses: actions/checkout@v3
 
-      # ✅ Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
 
-      # ✅ Terraform Init (for both PR & Push)
       - name: Terraform Init
         run: terraform init
 
-      # ✅ Format Check
       - name: Terraform Format Check
         run: terraform fmt -check
 
-      # ✅ Validate
       - name: Terraform Validate
         run: terraform validate
 
-      # =========================
       # 🟡 PR → PLAN
-      # =========================
       - name: Terraform Plan (PR)
         if: github.event_name == 'pull_request'
         run: terraform plan
 
-      # =========================
       # 🟢 MERGE → APPLY
-      # =========================
-
-      # 🔐 Configure AWS only for apply
       - name: Configure AWS Credentials
         if: github.event_name == 'push'
         uses: aws-actions/configure-aws-credentials@v2
@@ -63,12 +47,10 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # ✅ Plan before Apply (best practice)
       - name: Terraform Plan (Pre-Apply)
         if: github.event_name == 'push'
         run: terraform plan
 
-      # 🚀 Apply
       - name: Terraform Apply
         if: github.event_name == 'push'
         run: terraform apply -auto-approve
