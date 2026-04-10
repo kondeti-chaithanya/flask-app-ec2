@@ -25,6 +25,13 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
 
+      #  FIX: Configure AWS BEFORE init
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
       - name: Terraform Init
         run: terraform init
 
@@ -34,19 +41,12 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
-      # 🟡 PR → PLAN
+      #  PR → PLAN
       - name: Terraform Plan (PR)
         if: github.event_name == 'pull_request'
         run: terraform plan
 
-      # 🟢 MERGE → APPLY
-      - name: Configure AWS Credentials
-        if: github.event_name == 'push'
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
+      #  MERGE → APPLY
       - name: Terraform Plan (Pre-Apply)
         if: github.event_name == 'push'
         run: terraform plan
