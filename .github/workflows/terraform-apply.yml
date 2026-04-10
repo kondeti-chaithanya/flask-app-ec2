@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'infra/terraform/**'
+
   push:
     branches:
       - main
@@ -15,42 +16,59 @@ permissions:
   contents: read
 
 jobs:
-
   terraform:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: infra/terraform
+
     steps:
+      # ✅ Checkout
       - name: Checkout
         uses: actions/checkout@v3
 
+      # ✅ Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
 
+      # ✅ Terraform Init (for both PR & Push)
+      - name: Terraform Init
+        run: terraform init
+
+      # ✅ Format Check
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      # ✅ Validate
+      - name: Terraform Validate
+        run: terraform validate
+
+      # =========================
+      # 🟡 PR → PLAN
+      # =========================
+      - name: Terraform Plan (PR)
+        if: github.event_name == 'pull_request'
+        run: terraform plan
+
+      # =========================
+      # 🟢 MERGE → APPLY
+      # =========================
+
+      # 🔐 Configure AWS only for apply
       - name: Configure AWS Credentials
         if: github.event_name == 'push'
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ap-south-1
+          aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Terraform Init
-        run: terraform init
-        working-directory: infra/terraform
-
-      - name: Terraform Format Check
-        run: terraform fmt -check
-        working-directory: infra/terraform
-
-      - name: Terraform Validate
-        run: terraform validate
-        working-directory: infra/terraform
-
-      - name: Terraform Plan (PR)
-        if: github.event_name == 'pull_request'
+      # ✅ Plan before Apply (best practice)
+      - name: Terraform Plan (Pre-Apply)
+        if: github.event_name == 'push'
         run: terraform plan
-        working-directory: infra/terraform
 
-      - name: Terraform Apply (Merge)
+      # 🚀 Apply
+      - name: Terraform Apply
         if: github.event_name == 'push'
         run: terraform apply -auto-approve
-        working-directory: infra/terraform
