@@ -1,5 +1,4 @@
 region        = "ap-south-1"
-ami           = "ami-0abcdef12345"
 instance_type = "t3.micro"
 key_name      = "my-keypair"
 environment   = "dev"
