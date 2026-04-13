@@ -70,7 +70,7 @@ resource "aws_security_group" "sg" {
 module "ec2" {
   source = "./modules/ec2"
 
-  ami = data.aws_ami.ubuntu.id
+  ami           = data.aws_ami.ubuntu.id
   instance_type = var.instance_type
   key_name      = var.key_name
 
@@ -82,5 +82,5 @@ module "ec2" {
   environment = var.environment
 
   #  Auto setup (Docker + App)
-  user_data = file("${path.module}/user_data.sh") 
+  user_data = file("${path.module}/user_data.sh")
 }
