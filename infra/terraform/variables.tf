@@ -1,7 +1,8 @@
-variable "instance_type" {
-  default = "t3.micro"
-}
+variable "region" {}
+variable "ami" {}
+variable "instance_type" {}
+variable "key_name" {}
+variable "environment" {}
 
-variable "ami_id" {
-  default = "ami-0f58b397bc5c1f2e8"
-}
+variable "vpc_cidr" {}
+variable "subnet_cidr" {}

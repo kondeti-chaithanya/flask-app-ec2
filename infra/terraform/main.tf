@@ -1,18 +1,71 @@
-resource "aws_instance" "docker_app" {
-  ami           = var.ami_id
-  instance_type = var.instance_type
+########################################
+# 1. VPC MODULE (Network Layer)
+########################################
+module "vpc" {
+  source = "./modules/vpc"
 
-  user_data = <<-EOF
-              #!/bin/bash
-              yum update -y
-              amazon-linux-extras install docker -y
-              service docker start
-              usermod -a -G docker ec2-user
+  vpc_cidr    = var.vpc_cidr
+  subnet_cidr = var.subnet_cidr
+}
 
-              docker run -d -p 80:5000 nginx
-              EOF
+########################################
+# 2. SECURITY GROUP (Firewall Rules)
+########################################
+resource "aws_security_group" "sg" {
+  name        = "allow-app"
+  description = "Allow SSH and App traffic"
+  vpc_id      = module.vpc.vpc_id
+
+  # SSH access
+  ingress {
+    description = "SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # App access (Flask / Docker)
+  ingress {
+    description = "App Port"
+    from_port   = 5000
+    to_port     = 5000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow all outbound
+  egress {
+    description = "Allow all outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   tags = {
-    Name = "docker-ec2-app"
+    Name        = "allow-app-sg"
+    Environment = var.environment
   }
+}
+
+########################################
+# 3. EC2 MODULE (Compute Layer)
+########################################
+module "ec2" {
+  source = "./modules/ec2"
+
+  ami           = var.ami
+  instance_type = var.instance_type
+  key_name      = var.key_name
+
+  # 🔗 Dynamic references (NO hardcoding)
+  subnet_id          = module.vpc.subnet_id
+  security_group_ids = [aws_security_group.sg.id]
+
+  name        = "flask-ec2"
+  environment = var.environment
+
+  #  Auto setup (Docker + App)
+  user_data = file("user_data.sh")
 }
