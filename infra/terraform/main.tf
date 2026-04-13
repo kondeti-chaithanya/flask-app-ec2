@@ -1,3 +1,18 @@
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  owners = ["099720109477"] # Canonical (Ubuntu)
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+}
+
+
+
+
+
 ########################################
 # 1. VPC MODULE (Network Layer)
 ########################################
@@ -55,7 +70,7 @@ resource "aws_security_group" "sg" {
 module "ec2" {
   source = "./modules/ec2"
 
-  ami           = var.ami
+  ami = data.aws_ami.ubuntu.id
   instance_type = var.instance_type
   key_name      = var.key_name
 
@@ -67,5 +82,5 @@ module "ec2" {
   environment = var.environment
 
   #  Auto setup (Docker + App)
-  user_data = file("user_data.sh")
+  user_data = file("${path.module}/user_data.sh") 
 }
